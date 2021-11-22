@@ -12,7 +12,7 @@ import {
 } from "tuscjs";
 import counterpart from "counterpart";
 import {Notification} from "bitshares-ui-style-guide";
-import { Apis } from "tuscjs-ws";
+import {Apis} from "tuscjs-ws";
 
 const ApplicationApi = {
     create_account(
@@ -855,28 +855,24 @@ const ApplicationApi = {
         }
     },
 
-    async getTicketsByAccount(account){
+    async getTicketsByAccount(account) {
         let tickets = await Apis.instance()
             .db_api()
-            .exec("get_tickets_by_account", [account.get("id")])
-        return tickets
+            .exec("get_tickets_by_account", [account.get("id")]);
+        return tickets;
     },
 
-    async unlockTickets(
-        account,
-        tickets,
-        broadcast = true
-    ) {
+    async unlockTickets(account, tickets, broadcast = true) {
         // account must be unlocked
         await WalletUnlockActions.unlock();
 
         // ensure all arguments are chain objects
         let objects = {
-            account: await this._ensureAccount(account),
+            account: await this._ensureAccount(account)
         };
 
         console.log("Tickets in unlock: ", tickets);
-        for(let i = 0; i < tickets.length; i++){
+        for (let i = 0; i < tickets.length; i++) {
             let transactionBuilder = new TransactionBuilder();
             let ticket = tickets[i];
             let op = transactionBuilder.get_type_operation("ticket_update", {
@@ -886,15 +882,46 @@ const ApplicationApi = {
                 },
                 ticket: ticket.id,
                 account: objects.account.get("id"),
-                target_type: ChainTypes.ticket_type['liquid'],
-                extensions: [],
+                target_type: ChainTypes.ticket_type["liquid"],
+                extensions: []
             });
 
             transactionBuilder.add_operation(op);
-            await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+            await WalletDb.process_transaction(
+                transactionBuilder,
+                null,
+                broadcast
+            );
             if (!transactionBuilder.tr_buffer) {
                 throw "Something went wrong unlocking tickets";
             }
+        }
+    },
+
+    async importBalance(account, privetKeyToImport, broadcast = true) {
+        // account must be unlocked
+        await WalletUnlockActions.unlock();
+        console.log("account = " + account);
+        console.log("privetKeyToImport = " + privetKeyToImport);
+        // ensure all arguments are chain objects
+        let objects = {
+            account: await this._ensureAccount(account)
+        };
+
+        let transactionBuilder = new TransactionBuilder();
+        let op = transactionBuilder.get_type_operation("import_balance", {
+            fee: {
+                amount: 0,
+                asset_id: "1.3.0"
+            },
+            account: objects.account.get("id"),
+            wif_keys: [privetKeyToImport]
+        });
+
+        transactionBuilder.add_operation(op);
+        await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+        if (!transactionBuilder.tr_buffer) {
+            throw "Something went wrong attempting to import balance";
         }
     }
 };
