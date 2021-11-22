@@ -13,6 +13,7 @@ import {
 import counterpart from "counterpart";
 import {Notification} from "bitshares-ui-style-guide";
 import {Apis} from "tuscjs-ws";
+import {PrivateKey} from "tuscjs/es";
 
 const ApplicationApi = {
     create_account(
@@ -908,21 +909,31 @@ const ApplicationApi = {
             account: await this._ensureAccount(account)
         };
 
-        let transactionBuilder = new TransactionBuilder();
-        let op = transactionBuilder.get_type_operation("import_balance", {
-            fee: {
-                amount: 0,
-                asset_id: "1.3.0"
-            },
-            account: objects.account.get("id"),
-            wif_keys: [privetKeyToImport]
-        });
+        const privateKey = PrivateKey.fromWif(privetKeyToImport);
+        const ownerPublicKey = privateKey.toPublicKey().toPublicKeyString();
 
-        transactionBuilder.add_operation(op);
-        await WalletDb.process_transaction(transactionBuilder, null, broadcast);
-        if (!transactionBuilder.tr_buffer) {
-            throw "Something went wrong attempting to import balance";
-        }
+        console.log("ownerPublicKey = " + ownerPublicKey);
+        // TODO: need to retrieve all balances associated with privetKeyToImport
+        // let transactionBuilder = new TransactionBuilder();
+
+        // // TODO: For each balance from privetKeyToImport, create a transaction to claim the balances.
+
+        // let op = transactionBuilder.get_type_operation("balance_claim", {
+        //     fee: {
+        //         amount: 0,
+        //         asset_id: "1.3.0"
+        //     },
+        //     deposit_to_account: objects.account.get("id"),
+        //     balance_to_claim: "TODO",
+        //     balance_owner_key: ownerPublicKey,
+        //     total_claimed: "TODO"
+        // });
+
+        // transactionBuilder.add_operation(op);
+        // await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+        // if (!transactionBuilder.tr_buffer) {
+        //     throw "Something went wrong attempting to import balance";
+        // }
     }
 };
 
