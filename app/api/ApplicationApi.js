@@ -8,12 +8,14 @@ import {
     TransactionHelper,
     FetchChain,
     ChainStore,
-    ChainTypes
+    ChainTypes,
+    key
 } from "tuscjs";
 import counterpart from "counterpart";
 import {Notification} from "bitshares-ui-style-guide";
 import {Apis} from "tuscjs-ws";
 import {PrivateKey} from "tuscjs/es";
+import Immutable from "immutable";
 
 const ApplicationApi = {
     create_account(
@@ -900,40 +902,107 @@ const ApplicationApi = {
     },
 
     async importBalance(account, privetKeyToImport, broadcast = true) {
-        // account must be unlocked
-        await WalletUnlockActions.unlock();
-        console.log("account = " + account);
-        console.log("privetKeyToImport = " + privetKeyToImport);
         // ensure all arguments are chain objects
         let objects = {
             account: await this._ensureAccount(account)
         };
-
+        let transactionBuilder = new TransactionBuilder();
         const privateKey = PrivateKey.fromWif(privetKeyToImport);
         const ownerPublicKey = privateKey.toPublicKey().toPublicKeyString();
 
-        console.log("ownerPublicKey = " + ownerPublicKey);
-        // TODO: need to retrieve all balances associated with privetKeyToImport
-        // let transactionBuilder = new TransactionBuilder();
+        var db = Apis.instance().db_api();
+        let addresses = [];
+        for (let address_string of key.addresses(ownerPublicKey)) {
+            addresses.push(address_string);
+        }
 
-        // // TODO: For each balance from privetKeyToImport, create a transaction to claim the balances.
+        // Most of the below is porbably unnecessary for us because we only really have
+        // one asset that's claimable
+        let balances = await db
+            .exec("get_balance_objects", [addresses])
+            .then(result => {
+                var balance_ids = [];
+                for (let balance of result) balance_ids.push(balance.id);
+                return db
+                    .exec("get_vested_balances", [balance_ids])
+                    .then(vested_balances => {
+                        var balances = Immutable.List().withMutations(
+                            balance_list => {
+                                for (let i = 0; i < result.length; i++) {
+                                    var balance = result[i];
+                                    if (balance.vesting_policy)
+                                        balance.vested_balance =
+                                            vested_balances[i];
+                                    balance_list.push(balance);
+                                }
+                            }
+                        );
+                        return balances;
+                    });
+            });
 
-        // let op = transactionBuilder.get_type_operation("balance_claim", {
-        //     fee: {
-        //         amount: 0,
-        //         asset_id: "1.3.0"
-        //     },
-        //     deposit_to_account: objects.account.get("id"),
-        //     balance_to_claim: "TODO",
-        //     balance_owner_key: ownerPublicKey,
-        //     total_claimed: "TODO"
-        // });
+        let total_by_asset = balances
+            .groupBy(v => {
+                // K E Y S
+                return v.balance.asset_id;
+            })
+            .map(l =>
+                l.reduce(
+                    (r, v) => {
+                        // V A L U E S
+                        console.log("balances v = ", v);
+                        console.log("balances r = ", r);
+                        if (v.vested_balance != undefined) {
+                            r.vesting.unclaimed += Number(
+                                v.vested_balance.amount
+                            );
+                            r.vesting.total += Number(v.balance.amount);
+                        } else {
+                            r.unclaimed += Number(v.balance.amount);
+                        }
+                        r.id = v.id;
+                        return r;
+                    },
+                    {unclaimed: 0, vesting: {unclaimed: 0, total: 0}}
+                )
+            )
+            .sortBy(k => k);
 
-        // transactionBuilder.add_operation(op);
-        // await WalletDb.process_transaction(transactionBuilder, null, broadcast);
-        // if (!transactionBuilder.tr_buffer) {
-        //     throw "Something went wrong attempting to import balance";
-        // }
+        let operations = [];
+        for (let [key, value] of total_by_asset) {
+            if (value.unclaimed > 0) {
+                // console.log("Found balance", value);
+                let op = transactionBuilder.get_type_operation(
+                    "balance_claim",
+                    {
+                        fee: {
+                            amount: 0,
+                            asset_id: key
+                        },
+                        deposit_to_account: objects.account.get("id"),
+                        balance_to_claim: value.id,
+                        balance_owner_key: ownerPublicKey,
+                        total_claimed: value.unclaimed
+                    }
+                );
+                operations.push(op);
+            }
+            // operations.push(100);
+        }
+        if (operations.length == 0) {
+            throw new Error(
+                "There are no balances to claim for the given private key or the private key is incorrect."
+            );
+        }
+
+        for (const op of operations) {
+            // console.log(op);
+            transactionBuilder.add_operation(op);
+        }
+        await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+        if (!transactionBuilder.tr_buffer) {
+            throw "Something went wrong attempting to import balance";
+        }
     }
 };
 

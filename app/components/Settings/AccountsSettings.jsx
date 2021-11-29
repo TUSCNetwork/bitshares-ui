@@ -61,6 +61,35 @@ class AccountsSettings extends React.Component {
         if (!accounts.length) {
             return (
                 <div>
+                    <div>
+                        <Translate
+                            content="account.import_balance_explanation"
+                            component="p"
+                        />
+                        <Tooltip
+                            title={counterpart.translate(
+                                "account.import_balance"
+                            )}
+                            mouseEnterDelay={0.5}
+                        >
+                            <Button
+                                type="primary"
+                                onClick={this.showImportBalanceModal}
+                            >
+                                <Translate content="modal.import_balance.title" />
+                            </Button>
+                        </Tooltip>
+                    </div>
+                    {/* Create Import Balance Modal */}
+                    {(this.state.isImportBalanceModalVisible ||
+                        this.state.isImportBalanceModalVisibleBefore) && (
+                        <ImportBalanceModal
+                            visible={this.state.isImportBalanceModalVisible}
+                            hideModal={this.hideImportBalanceModal}
+                            asset={"1.3.0"}
+                            account={this.props.account}
+                        />
+                    )}
                     <Translate content="settings.no_accounts" />
                 </div>
             );

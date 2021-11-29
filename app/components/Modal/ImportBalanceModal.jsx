@@ -57,12 +57,15 @@ class ImportBalanceModal extends React.Component {
         };
     }
 
-    onSubmit() {
+    async onSubmit() {
         ApplicationApi.importBalance(
             this.state.accountNameToImportBalanceTo,
             this.state.privateKeyToImport
         )
             .then(result => {
+                Notification.success({
+                    message: counterpart.translate("account.import_success")
+                });
                 console.log("Balance imported");
             })
             .catch(error => {
@@ -86,12 +89,20 @@ class ImportBalanceModal extends React.Component {
         this.props.hideModal();
     }
 
-    onAccountNameToImportBalanceToInput = accountNameToImportBalanceTo =>
-        this.setState({accountNameToImportBalanceTo, error: null});
+    // onAccountNameToImportBalanceToInput = accountNameToImportBalanceTo =>
+    //     this.setState({accountNameToImportBalanceTo, error: null});
 
     onPrivateKeyInput(e) {
         let state = {
             privateKeyToImport: e.target.value
+        };
+
+        this.setState(state);
+    }
+
+    onAccountNameToImportBalanceToInput(e) {
+        let state = {
+            accountNameToImportBalanceTo: e.target.value
         };
 
         this.setState(state);
@@ -104,7 +115,13 @@ class ImportBalanceModal extends React.Component {
                 onCancel={this.props.hideModal}
                 title={counterpart.translate("modal.import_balance.title")}
                 footer={[
-                    <Button type="primary" key="submit" onClick={this.onSubmit}>
+                    <Button
+                        type="primary"
+                        key="submit"
+                        onClick={async () => {
+                            await this.onSubmit();
+                        }}
+                    >
                         {counterpart.translate("modal.import_balance.submit")}
                     </Button>,
                     <Button onClick={this.props.hideModal} key="cancel">
@@ -114,7 +131,7 @@ class ImportBalanceModal extends React.Component {
             >
                 <div className="grid-content">
                     <Form layout="vertical">
-                        <AccountSelector
+                        {/* <AccountSelector
                             label="account.import_account_destination"
                             inputRef={this.account_input} // needed for ref forwarding to Input
                             accountName={
@@ -129,16 +146,20 @@ class ImportBalanceModal extends React.Component {
                             useHR
                             labelClass="login-label"
                             reserveErrorSpace
-                        />
+                        /> */}
 
-                        {/* <Form.Item
-                            label="Destination account name"
+                        <Form.Item
+                            label={counterpart.translate(
+                                "account.import_account_destination"
+                            )}
                         >
                             <Input
                                 value={this.state.accountNameToImportBalanceTo}
-                                onChange={this.onAccountNameToImportBalanceToInput.bind(this)}
+                                onChange={this.onAccountNameToImportBalanceToInput.bind(
+                                    this
+                                )}
                             />
-                        </Form.Item> */}
+                        </Form.Item>
                         <Form.Item label="Private key to import">
                             <Input
                                 value={this.state.privateKeyToImport}

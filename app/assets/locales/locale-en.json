@@ -446,7 +446,8 @@
         },
         "import_balance": "Click here to claim any unclaimed account balance for a particular private key.",
         "import_balance_explanation": "Claim all unclaimed account balances for a given private key.",
-        "import_account_destination": "Destination account for claimed balance"
+        "import_account_destination": "Destination account for claimed balance",
+        "import_success": "Balance Claimed!"
     },
     "account_browsing_mode": {
         "go_back": "Go back to my account",
