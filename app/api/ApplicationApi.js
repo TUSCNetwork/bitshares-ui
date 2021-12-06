@@ -902,6 +902,9 @@ const ApplicationApi = {
     },
 
     async importBalance(account, privetKeyToImport, broadcast = true) {
+        // account must be unlocked
+        await WalletUnlockActions.unlock();
+
         // ensure all arguments are chain objects
         let objects = {
             account: await this._ensureAccount(account)
@@ -912,6 +915,7 @@ const ApplicationApi = {
 
         var db = Apis.instance().db_api();
         let addresses = [];
+
         for (let address_string of key.addresses(ownerPublicKey)) {
             addresses.push(address_string);
         }
@@ -950,8 +954,6 @@ const ApplicationApi = {
                 l.reduce(
                     (r, v) => {
                         // V A L U E S
-                        console.log("balances v = ", v);
-                        console.log("balances r = ", r);
                         if (v.vested_balance != undefined) {
                             r.vesting.unclaimed += Number(
                                 v.vested_balance.amount
@@ -971,7 +973,6 @@ const ApplicationApi = {
         let operations = [];
         for (let [key, value] of total_by_asset) {
             if (value.unclaimed > 0) {
-                // console.log("Found balance", value);
                 let op = transactionBuilder.get_type_operation(
                     "balance_claim",
                     {
@@ -982,12 +983,11 @@ const ApplicationApi = {
                         deposit_to_account: objects.account.get("id"),
                         balance_to_claim: value.id,
                         balance_owner_key: ownerPublicKey,
-                        total_claimed: value.unclaimed
+                        total_claimed: {amount: value.unclaimed, asset_id: key}
                     }
                 );
                 operations.push(op);
             }
-            // operations.push(100);
         }
         if (operations.length == 0) {
             throw new Error(
@@ -996,7 +996,6 @@ const ApplicationApi = {
         }
 
         for (const op of operations) {
-            // console.log(op);
             transactionBuilder.add_operation(op);
         }
         await WalletDb.process_transaction(transactionBuilder, null, broadcast);
