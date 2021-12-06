@@ -80,7 +80,7 @@ class AccountVoting extends React.Component {
                 }
             ],
             tickets: [],
-            unlockableTickets: [],
+            unlockableTickets: []
         };
 
         this.onProxyAccountFound = this.onProxyAccountFound.bind(this);
@@ -110,8 +110,7 @@ class AccountVoting extends React.Component {
         return (
             ns.isCreateLockModalVisible !=
                 this.state.isCreateLockModalVisible ||
-            ns.isUnlockModalVisible !=
-                    this.state.isUnlockModalVisible ||
+            ns.isUnlockModalVisible != this.state.isUnlockModalVisible ||
             np.location.pathname !== this.props.location.pathname ||
             ns.prev_proxy_account_id !== this.state.prev_proxy_account_id ||
             ns.hideLegacyProposals !== this.state.hideLegacyProposals ||
@@ -136,18 +135,20 @@ class AccountVoting extends React.Component {
     }
 
     getTickets() {
-        let tickets = ApplicationApi.getTicketsByAccount(this.props.account)
-        tickets.then(result => { 
+        let tickets = ApplicationApi.getTicketsByAccount(this.props.account);
+        tickets.then(result => {
             this.state.tickets = result;
             this.state.isTicketsLoaded = true;
         });
         console.log("state tickets: ", this.state.tickets);
 
-        const unlockableTickets = this.state.tickets
-        .filter(ticket => ticket.value > 0 &&
-            ticket.status !== 'withdrawing' &&
-            ticket.target_type !== 'lock_forever' &&
-            ticket.current_type !== 'lock_forever');
+        const unlockableTickets = this.state.tickets.filter(
+            ticket =>
+                ticket.value > 0 &&
+                ticket.status !== "withdrawing" &&
+                ticket.target_type !== "lock_forever" &&
+                ticket.current_type !== "lock_forever"
+        );
         this.state.unlockableTickets = unlockableTickets;
         console.log("state unlockableTickets: ", this.state.unlockableTickets);
     }
@@ -601,6 +602,7 @@ class AccountVoting extends React.Component {
             proxy_vote_ids,
             proxy_account_id
         } = this.state;
+        console.log(all_committee);
         const accountHasProxy = !!prev_proxy_account_id;
         const preferredUnit = this.props.settings.get("unit") || "1.3.0";
         const hasProxy = !!proxy_account_id; // this.props.account.getIn(["options", "voting_account"]) !== "1.2.5";
@@ -792,7 +794,6 @@ class AccountVoting extends React.Component {
         );
     }
 
-    
     showCreateLockModal() {
         this.setState({
             isCreateLockModalVisible: true,
@@ -806,12 +807,7 @@ class AccountVoting extends React.Component {
         });
     }
 
-    // sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
-
-    // async showUnlockModal() {
-    //     await this.sleep(3000);
     showUnlockModal() {
-        console.log("First");
         this.setState({
             isUnlockModalVisible: true,
             isUnlockModalVisibleBefore: true

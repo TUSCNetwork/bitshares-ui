@@ -443,7 +443,11 @@
             "white_by": "Whitelisted by",
             "whitelist_authorities": "Whitelist authority",
             "whitelist_market_fee_sharing": "Market fee sharing whitelist"
-        }
+        },
+        "import_balance": "Click here to claim any unclaimed account balance for a particular private key.",
+        "import_balance_explanation": "Claim all unclaimed account balances for a given private key.",
+        "import_account_destination": "Destination account for claimed balance",
+        "import_success": "Balance Claimed!"
     },
     "account_browsing_mode": {
         "go_back": "Go back to my account",
@@ -1682,6 +1686,10 @@
             "type_warning": "Please choose a lock type.",
             "warning_message": "Note that unlocking all assets takes time and voting power will be lost."
         },
+        "import_balance": {
+            "submit": "Claim",
+            "title": "Claim Account Balance"
+        },
         "withdraw": {
             "address": "Withdraw to Address",
             "address_not_valid": "Invalid address",
@@ -1742,7 +1750,8 @@
         "password_change_failure": "Unable to change password: %(error_msg)s",
         "password_change_success": "Password changed",
         "wallet_unlock_different_block_chain": "This wallet was intended for a different block-chain; expecting %(expectedWalletId)s, but got %(actualWalletId)s",
-        "worker_create_failure": "Failed to create worker: %(error_msg)s"
+        "worker_create_failure": "Failed to create worker: %(error_msg)s",
+        "import_balance_failure": "Failed to claim balance: %(error_msg)s"
     },
     "openledger": {
         "deposit_amount": "Deposit Amount",

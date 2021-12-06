@@ -8,11 +8,14 @@ import {
     TransactionHelper,
     FetchChain,
     ChainStore,
-    ChainTypes
+    ChainTypes,
+    key
 } from "tuscjs";
 import counterpart from "counterpart";
 import {Notification} from "bitshares-ui-style-guide";
-import { Apis } from "tuscjs-ws";
+import {Apis} from "tuscjs-ws";
+import {PrivateKey} from "tuscjs/es";
+import Immutable from "immutable";
 
 const ApplicationApi = {
     create_account(
@@ -855,28 +858,24 @@ const ApplicationApi = {
         }
     },
 
-    async getTicketsByAccount(account){
+    async getTicketsByAccount(account) {
         let tickets = await Apis.instance()
             .db_api()
-            .exec("get_tickets_by_account", [account.get("id")])
-        return tickets
+            .exec("get_tickets_by_account", [account.get("id")]);
+        return tickets;
     },
 
-    async unlockTickets(
-        account,
-        tickets,
-        broadcast = true
-    ) {
+    async unlockTickets(account, tickets, broadcast = true) {
         // account must be unlocked
         await WalletUnlockActions.unlock();
 
         // ensure all arguments are chain objects
         let objects = {
-            account: await this._ensureAccount(account),
+            account: await this._ensureAccount(account)
         };
 
         console.log("Tickets in unlock: ", tickets);
-        for(let i = 0; i < tickets.length; i++){
+        for (let i = 0; i < tickets.length; i++) {
             let transactionBuilder = new TransactionBuilder();
             let ticket = tickets[i];
             let op = transactionBuilder.get_type_operation("ticket_update", {
@@ -886,15 +885,122 @@ const ApplicationApi = {
                 },
                 ticket: ticket.id,
                 account: objects.account.get("id"),
-                target_type: ChainTypes.ticket_type['liquid'],
-                extensions: [],
+                target_type: ChainTypes.ticket_type["liquid"],
+                extensions: []
             });
 
             transactionBuilder.add_operation(op);
-            await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+            await WalletDb.process_transaction(
+                transactionBuilder,
+                null,
+                broadcast
+            );
             if (!transactionBuilder.tr_buffer) {
                 throw "Something went wrong unlocking tickets";
             }
+        }
+    },
+
+    async importBalance(account, privetKeyToImport, broadcast = true) {
+        // account must be unlocked
+        await WalletUnlockActions.unlock();
+
+        // ensure all arguments are chain objects
+        let objects = {
+            account: await this._ensureAccount(account)
+        };
+        let transactionBuilder = new TransactionBuilder();
+        const privateKey = PrivateKey.fromWif(privetKeyToImport);
+        const ownerPublicKey = privateKey.toPublicKey().toPublicKeyString();
+
+        var db = Apis.instance().db_api();
+        let addresses = [];
+
+        for (let address_string of key.addresses(ownerPublicKey)) {
+            addresses.push(address_string);
+        }
+
+        // Most of the below is porbably unnecessary for us because we only really have
+        // one asset that's claimable
+        let balances = await db
+            .exec("get_balance_objects", [addresses])
+            .then(result => {
+                var balance_ids = [];
+                for (let balance of result) balance_ids.push(balance.id);
+                return db
+                    .exec("get_vested_balances", [balance_ids])
+                    .then(vested_balances => {
+                        var balances = Immutable.List().withMutations(
+                            balance_list => {
+                                for (let i = 0; i < result.length; i++) {
+                                    var balance = result[i];
+                                    if (balance.vesting_policy)
+                                        balance.vested_balance =
+                                            vested_balances[i];
+                                    balance_list.push(balance);
+                                }
+                            }
+                        );
+                        return balances;
+                    });
+            });
+
+        let total_by_asset = balances
+            .groupBy(v => {
+                // K E Y S
+                return v.balance.asset_id;
+            })
+            .map(l =>
+                l.reduce(
+                    (r, v) => {
+                        // V A L U E S
+                        if (v.vested_balance != undefined) {
+                            r.vesting.unclaimed += Number(
+                                v.vested_balance.amount
+                            );
+                            r.vesting.total += Number(v.balance.amount);
+                        } else {
+                            r.unclaimed += Number(v.balance.amount);
+                        }
+                        r.id = v.id;
+                        return r;
+                    },
+                    {unclaimed: 0, vesting: {unclaimed: 0, total: 0}}
+                )
+            )
+            .sortBy(k => k);
+
+        let operations = [];
+        for (let [key, value] of total_by_asset) {
+            if (value.unclaimed > 0) {
+                let op = transactionBuilder.get_type_operation(
+                    "balance_claim",
+                    {
+                        fee: {
+                            amount: 0,
+                            asset_id: key
+                        },
+                        deposit_to_account: objects.account.get("id"),
+                        balance_to_claim: value.id,
+                        balance_owner_key: ownerPublicKey,
+                        total_claimed: {amount: value.unclaimed, asset_id: key}
+                    }
+                );
+                operations.push(op);
+            }
+        }
+        if (operations.length == 0) {
+            throw new Error(
+                "There are no balances to claim for the given private key or the private key is incorrect."
+            );
+        }
+
+        for (const op of operations) {
+            transactionBuilder.add_operation(op);
+        }
+        await WalletDb.process_transaction(transactionBuilder, null, broadcast);
+        if (!transactionBuilder.tr_buffer) {
+            throw "Something went wrong attempting to import balance";
         }
     }
 };
