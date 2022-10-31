@@ -276,7 +276,7 @@ class AssetActions {
             symbol: createObject.symbol,
             precision: parseInt(createObject.precision, 10),
             common_options: {
-                max_supply: max_supply,
+                initial_max_supply: max_supply,
                 market_fee_percent: createObject.market_fee_percent * 100 || 0,
                 max_market_fee: max_market_fee,
                 issuer_permissions: permissions,
