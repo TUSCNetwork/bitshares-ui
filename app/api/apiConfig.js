@@ -121,6 +121,46 @@ export const settingsAPIs = {
             location: {translate: "settings.api_closest"}
         },
         {
+            url: "wss://tusc01.iamredbar.com",
+            location: "Texas",
+            region: "Northern America",
+            country: "U.S.A."
+            //operator: "iamredbar1",
+            //contact: "https://tusc.network/forum/discussion/198/worker-proposal-tusc-worldwide-node-infrastructure-1-year-iamredbar"
+        },
+        {
+            url: "wss://tusc02.iamredbar.com",
+            location: "Ontario",
+            region: "Northern America",
+            country: "Canada"
+            //operator: "iamredbar1",
+            //contact: "https://tusc.network/forum/discussion/198/worker-proposal-tusc-worldwide-node-infrastructure-1-year-iamredbar"
+        },
+        {
+            url: "wss://tusc03.iamredbar.com",
+            location: "Frankfurt",
+            region: "Western Europe",
+            country: "Germany"
+            //operator: "iamredbar1",
+            //contact: "https://tusc.network/forum/discussion/198/worker-proposal-tusc-worldwide-node-infrastructure-1-year-iamredbar"
+        },
+        {
+            url: "wss://tusc04.iamredbar.com",
+            location: "Mumbai",
+            region: "Southern Asia",
+            country: "India"
+            //operator: "iamredbar1",
+            //contact: "https://tusc.network/forum/discussion/198/worker-proposal-tusc-worldwide-node-infrastructure-1-year-iamredbar"
+        },
+        {
+            url: "wss://tusc05.iamredbar.com",
+            location: "Sydney",
+            region: "Australia",
+            country: "Australia"
+            //operator: "iamredbar1",
+            //contact: "https://tusc.network/forum/discussion/198/worker-proposal-tusc-worldwide-node-infrastructure-1-year-iamredbar"
+        },
+        {
             url: "wss://api.tusc.network/wallet",
             location: "Virginia",
             region: "Northern America",
